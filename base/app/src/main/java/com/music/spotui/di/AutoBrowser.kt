@@ -260,21 +260,63 @@ object AutoBrowser {
         return out
     }
 
+    /** Looks up the top matching song for [query] from Spotify search. */
+    suspend fun searchTopSong(query: String): SongsModel? {
+        if (!awaitPlayer()) {
+            android.util.Log.w("Myspoti", "search dropped: the player page is not ready")
+            return null
+        }
+        return (firstResult { Graph.api.searchEverything(query) })?.songs?.firstOrNull()
+    }
+
+    /**
+     * Plays [song] directly: honors offline downloads, updates queue and Now Playing UI,
+     * triggers audio routing/extensions, and queues recommended radio tracks in background.
+     */
+    fun playSongDirect(song: SongsModel) {
+        val store = OfflineStore
+        val id = song.spotifyTrackId.ifBlank { song.url.removePrefix("spotify:track:") }
+        if (store.isDownloaded(id)) {
+            val local = store.tracks[id]
+            if (local != null) {
+                onMain {
+                    LocalPlayer.play(
+                        listOf(store.toLocalTrack(local)),
+                        0,
+                        shuffle = Graph.currentSongState.shuffle.value,
+                        context = local.title
+                    )
+                }
+                return
+            }
+        }
+        onMain {
+            Graph.currentSongState.updateQueue(listOf(song))
+            Graph.currentSongState.updateSongState(song.coverUri, song.title, song.singer, true, song.id, 0, song.album)
+            SongPlayer.playSong(song.url, songs = listOf(song), alone = true)
+        }
+        val seed = song.spotifyTrackId
+        if (seed.isNotBlank()) {
+            scope.launch {
+                val recs = Graph.repository.provideRecommendations(listOf(seed))
+                val current = Graph.currentSongState.queue.value
+                if (current.size == 1 && current.first().id == song.id) {
+                    val fresh = recs.filter { it.id != song.id }
+                    if (fresh.isNotEmpty()) Graph.currentSongState.updateQueue(current + fresh)
+                }
+            }
+        }
+    }
+
     /** Voice search ("play X on Myspoti"): the best matching track. */
     suspend fun playFromSearch(query: String): Boolean {
-        // A cold start asks before the page is up: waiting gives the answer, returning at
-        // once would tell the driver nothing matched.
-        if (!awaitPlayer()) {
-            android.util.Log.w("Myspoti", "voice search dropped: the player page is not ready")
-            return false
-        }
-        val song = (firstResult { Graph.api.searchEverything(query) })?.songs?.firstOrNull() ?: return false
-        play("t||${song.url}")
+        val song = searchTopSong(query) ?: return false
+        playSongDirect(song)
         return true
     }
 
     /** [MyspotiRuntime.api.ready], waited for (bounded) — the page loads after the car connects. */
-    private suspend fun awaitPlayer(): Boolean =
+    internal suspend fun awaitPlayer(): Boolean =
         MyspotiRuntime.api.ready.value ||
             withTimeoutOrNull(READY_WAIT_MS) { MyspotiRuntime.api.ready.first { it } } != null
 

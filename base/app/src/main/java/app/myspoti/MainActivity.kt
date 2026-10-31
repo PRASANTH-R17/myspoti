@@ -420,12 +420,19 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    /** Spotify links (open.spotify.com/...) play their item; voice search plays its best match. */
+    /** Spotify links (open.spotify.com/...) play their item; shared YouTube URLs autoplay top match; voice search plays its best match. */
     private fun handle(intent: Intent?) {
         intent ?: return
         when (intent.action) {
             Intent.ACTION_VIEW -> {
                 val link = intent.data?.toString() ?: return
+                val ytId = com.music.spotui.video.YouTubeShareHandler.extractVideoId(link)
+                if (ytId != null) {
+                    lifecycleScope.launch {
+                        com.music.spotui.video.YouTubeShareHandler.handleVideoId(this@MainActivity, ytId)
+                    }
+                    return
+                }
                 // A collaborative-playlist invitation (…?pt=) or a spotify.link short link: kept / resolved there.
                 if (com.music.spotui.data.api.InviteLinks.handle(link)) return
                 val uri = spotifyUri(link) ?: return
@@ -444,6 +451,14 @@ class MainActivity : AppCompatActivity() {
                 lifecycleScope.launch {
                     MyspotiRuntime.api.ready.first { it }
                     runCatching { MyspotiRuntime.api.player.play(uri) }
+                }
+            }
+            Intent.ACTION_SEND -> {
+                val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
+                    ?: intent.clipData?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.text?.toString()
+                val subject = intent.getStringExtra(Intent.EXTRA_SUBJECT)
+                lifecycleScope.launch {
+                    com.music.spotui.video.YouTubeShareHandler.handleShared(this@MainActivity, sharedText, subject)
                 }
             }
             android.provider.MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH -> {

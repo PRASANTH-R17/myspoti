@@ -23,4 +23,10 @@
     <string name="account_page_detail">Plan, privacy and devices, on spotify.com</string>
     <string name="player_source_downloaded">Downloaded</string>
     <string name="extension_change_write">Now also allowed to send to Spotify: %1$s</string>
+    <string name="youtube_share_looking_up" tools:ignore="MissingTranslation">Finding YouTube song on Myspoti…</string>
+    <string name="youtube_share_searching" tools:ignore="MissingTranslation">Searching for \"%1$s\"…</string>
+    <string name="youtube_share_playing" tools:ignore="MissingTranslation">Playing %1$s</string>
+    <string name="youtube_share_no_match" tools:ignore="MissingTranslation">No match found on Spotify for \"%1$s\"</string>
+    <string name="youtube_share_failed_info" tools:ignore="MissingTranslation">Could not retrieve YouTube video info</string>
+    <string name="youtube_share_login_required" tools:ignore="MissingTranslation">Please log in to Myspoti to play music</string>
 </resources>

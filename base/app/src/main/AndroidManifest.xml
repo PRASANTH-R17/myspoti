@@ -101,6 +101,7 @@
                 <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
+
             <!-- No autoVerify: these are Spotify's domains, verification can never
                  pass for this app. spotify.link / spoti.fi short links (how the official
                  apps share a collaborative playlist invitation) are offered too: the id and
@@ -128,6 +129,26 @@
                 <data
                     android:scheme="https"
                     android:host="spoti.fi" />
+            </intent-filter>
+        </activity>
+
+        <!-- Background YouTube / audio share receiver: intercepts shared URLs and text without interrupting YouTube -->
+        <activity
+            android:name="app.myspoti.ShareReceiverActivity"
+            android:exported="true"
+            android:noHistory="true"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/*" />
             </intent-filter>
         </activity>
 
