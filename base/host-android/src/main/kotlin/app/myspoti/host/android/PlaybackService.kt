@@ -430,7 +430,7 @@ class PlaybackService : MediaBrowserServiceCompat() {
     private fun build(info: NowPlayingInfo?): Notification {
         val playing = info?.playing == true
         val episode = info?.episode == true
-        return NotificationCompat.Builder(this, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.msp_ic_notification)
             .setContentTitle(info?.title ?: "")
             .setContentText(info?.artist ?: "")
@@ -452,7 +452,32 @@ class PlaybackService : MediaBrowserServiceCompat() {
                 MediaButtonReceiver.buildMediaButtonPendingIntent(this,
                     if (episode) PlaybackStateCompat.ACTION_FAST_FORWARD else PlaybackStateCompat.ACTION_SKIP_TO_NEXT))
             .setStyle(MediaStyle().setMediaSession(session.sessionToken).setShowActionsInCompactView(0, 1, 2))
-            .build()
+
+        // Vivo OriginOS Origin Island (Atomic Island) capsule support
+        if (isVivoOriginDevice()) {
+            val vivoExtras = Bundle().apply {
+                putInt("notification.superx.operation", if (playing) 0 else 2)
+                putBoolean("notification.superx.showNotify", true)
+                putInt("notification.superx.template", 1)
+                putString("notification.superx.scene", "MUSIC")
+                putString("notification.superx.title", info?.title ?: "")
+                putString("notification.superx.content", info?.artist ?: "")
+                putInt("notification.superx.state", if (playing) 1 else 2)
+                launchIntent()?.let { putParcelable("notification.superx.clickResp", it) }
+            }
+            builder.addExtras(vivoExtras)
+        }
+
+        return builder.build()
+    }
+
+    private fun isVivoOriginDevice(): Boolean {
+        val manufacturer = Build.MANUFACTURER.orEmpty()
+        val brand = Build.BRAND.orEmpty()
+        return manufacturer.equals("vivo", ignoreCase = true) ||
+               manufacturer.equals("iqoo", ignoreCase = true) ||
+               brand.equals("vivo", ignoreCase = true) ||
+               brand.equals("iqoo", ignoreCase = true)
     }
 
     private fun launchIntent(): PendingIntent? {
