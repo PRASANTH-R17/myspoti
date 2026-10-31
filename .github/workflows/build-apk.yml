@@ -64,18 +64,20 @@ jobs:
         run: |
           if [ -n "$KEYSTORE_BASE64" ]; then
             echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
-            echo "KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> $GITHUB_ENV
           fi
 
       - name: Build Release APK
         if: ${{ inputs.build_type == 'release' || inputs.build_type == 'both' }}
-        env:
-          MYSPOTI_KEYSTORE: ${{ env.KEYSTORE_FILE }}
-          MYSPOTI_KEYSTORE_PASSWORD: ${{ secrets.MYSPOTI_KEYSTORE_PASSWORD || secrets.MYSPOTI_STABLE_KEYSTORE_PASSWORD }}
-          MYSPOTI_KEY_ALIAS: ${{ secrets.MYSPOTI_KEY_ALIAS || secrets.MYSPOTI_STABLE_KEY_ALIAS }}
-          MYSPOTI_KEY_PASSWORD: ${{ secrets.MYSPOTI_KEY_PASSWORD || secrets.MYSPOTI_STABLE_KEY_PASSWORD }}
         run: |
-          ./gradlew assembleRelease
+          if [ -f "$RUNNER_TEMP/release.jks" ]; then
+            MYSPOTI_KEYSTORE="$RUNNER_TEMP/release.jks" \
+            MYSPOTI_KEYSTORE_PASSWORD="${{ secrets.MYSPOTI_KEYSTORE_PASSWORD || secrets.MYSPOTI_STABLE_KEYSTORE_PASSWORD }}" \
+            MYSPOTI_KEY_ALIAS="${{ secrets.MYSPOTI_KEY_ALIAS || secrets.MYSPOTI_STABLE_KEY_ALIAS }}" \
+            MYSPOTI_KEY_PASSWORD="${{ secrets.MYSPOTI_KEY_PASSWORD || secrets.MYSPOTI_STABLE_KEY_PASSWORD }}" \
+            ./gradlew assembleRelease
+          else
+            ./gradlew assembleRelease
+          fi
 
       - name: Upload Release APK
         if: ${{ inputs.build_type == 'release' || inputs.build_type == 'both' }}

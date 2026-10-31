@@ -52,7 +52,7 @@ android {
     }
 
     // Release key from the CI secrets (env), else keystore/keystore.properties.
-    val envStore = System.getenv("MYSPOTI_KEYSTORE")
+    val envStore = System.getenv("MYSPOTI_KEYSTORE")?.takeIf { it.isNotBlank() }
     val hasReleaseKey = envStore != null || keystorePropertiesFile.exists()
     // A stable release (a version without "-beta", given by CI) is never signed with the debug key:
     // without the release key the build stops. Local builds (no version) and -PoverDev are not stable releases.
